@@ -53,12 +53,12 @@ layers = [
     (Conv2D, conv_params(8 * n)),
     (RMSPoolLayer, pool_params(strides=(3, 3))),
     (Dropout, {'rate': 0.5}),
-    (Dense, dense_params(1024)),
+    (Flatten, {}), (Dense, dense_params(1024)),
     (Reshape, {'target_shape': (-1, 1)}), (MaxPooling1D, {'pool_size': 2}),
     (Dropout, {'rate': 0.5}),
-    (Dense, dense_params(1024)),
+    (Flatten, {}), (Dense, dense_params(1024)),
     (Reshape, {'target_shape': (-1, 1)}), (MaxPooling1D, {'pool_size': 2}),
-    (Dense, dense_params(1, activation='linear')),
+    (Flatten, {}), (Dense, dense_params(1, activation='linear')),
 ]
 
 config = Config(layers=layers, cnf=cnf)

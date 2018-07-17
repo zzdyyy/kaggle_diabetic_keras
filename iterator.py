@@ -1,24 +1,14 @@
 import multiprocessing
-
 import threading
 import queue
 from uuid import uuid4
-
 import numpy as np
-import SharedArray
 
 import data
 
-def load_shared(args):
-    i, array_name, fname, kwargs = args
-    array = SharedArray.attach(array_name)
-    array[i] = data.load_augment(fname, **kwargs)
-
-
-# global_pool = multiprocessing.Pool(4)
-
 
 class BatchIterator(object):
+    """when given a dataset X and y, generate batch, transform it and yield the batch"""
     def __init__(self, batch_size):
         self.batch_size = batch_size
 
@@ -53,6 +43,7 @@ class BatchIterator(object):
 
 class QueueIterator(BatchIterator):
     """BatchIterator with seperate thread to do the image reading."""
+
     def __iter__(self):
         myqueue = queue.Queue(maxsize=20)
         end_marker = object()
@@ -69,63 +60,103 @@ class QueueIterator(BatchIterator):
 
         item = myqueue.get()
         while item is not end_marker:
-            #print("I'm get one and there are {} left.".format(myqueue.qsize()))
             yield item
             myqueue.task_done()
             item = myqueue.get()
 
 
-class SharedIterator(QueueIterator):
-    def __init__(self, config, deterministic=False, *args, **kwargs):
-        self.config = config
-        self.deterministic = deterministic
-        #self.pool = global_pool
-        super(SharedIterator, self).__init__(*args, **kwargs)
+multi_reading = False
+if multi_reading:
+    import SharedArray  # see SharedIterator below
 
+    def load_shared(args):
+        i, array_name, fname, kwargs = args
+        array = SharedArray.attach(array_name)
+        array[i] = data.load_augment(fname, **kwargs)
 
-    def transform(self, Xb, yb):
-        fnames, labels = super(SharedIterator, self).transform(Xb, yb)
+    global_pool = multiprocessing.Pool(4)
 
-        array = []
-        for i, fname in enumerate(fnames):
-            kwargs = {k: self.config.get(k) for k in ['w', 'h']}
-            if not self.deterministic:
-                kwargs.update({k: self.config.get(k)
-                               for k in ['aug_params', 'sigma']})
-            kwargs['transform'] = getattr(self, 'tf', None)
-            kwargs['color_vec'] = getattr(self, 'color_vec', None)
-            array.append(data.load_augment(fname, **kwargs))
+    class SharedIterator(QueueIterator):
+        """override the transform function to read image
 
-        Xb = np.stack(array).astype('float32')
+        This class use SharedArray to do multi-process image image read and augment. The global_pool seems work better
+        when initialized early (but after the load_shared function).
 
-        # shared_array_name = str(uuid4())
-        # try:
-        #     shared_array = SharedArray.create(
-        #         shared_array_name, [len(Xb), 3, self.config.get('w'),
-        #                             self.config.get('h')], dtype=np.float32)
-        #
-        #     fnames, labels = super(SharedIterator, self).transform(Xb, yb)
-        #     args = []
-        #
-        #     for i, fname in enumerate(fnames):
-        #         kwargs = {k: self.config.get(k) for k in ['w', 'h']}
-        #         if not self.deterministic:
-        #             kwargs.update({k: self.config.get(k)
-        #                            for k in ['aug_params', 'sigma']})
-        #         kwargs['transform'] = getattr(self, 'tf', None)
-        #         kwargs['color_vec'] = getattr(self, 'color_vec', None)
-        #         args.append((i, shared_array_name, fname, kwargs))
-        #
-        #     self.pool.map(load_shared, args)
-        #     Xb = np.array(shared_array, dtype=np.float32)
-        #
-        # finally:
-        #     SharedArray.delete(shared_array_name)
+        Sometimes the multi-process may be conflict with tensorflow/keras and cause bus error. If this happens, try to
+        set multi_reading = False
 
-        if labels is not None:
-            labels = labels[:, np.newaxis]
+        If the running process exits by exception (e.g. Ctrl+C), there will be some trash leaved in /dev/shm, which can
+        be deleted manually, or automatically when the system reboots.
+        """
+        def __init__(self, config, deterministic=False, *args, **kwargs):
+            self.config = config
+            self.deterministic = deterministic
+            self.pool = global_pool
+            super(SharedIterator, self).__init__(*args, **kwargs)
 
-        return Xb, labels
+        def transform(self, Xb, yb):
+
+            shared_array_name = str(uuid4())
+            try:
+                shared_array = SharedArray.create(
+                    shared_array_name, [len(Xb), 3, self.config.get('w'),
+                                        self.config.get('h')], dtype=np.float32)
+
+                fnames, labels = super(SharedIterator, self).transform(Xb, yb)
+                args = []
+
+                for i, fname in enumerate(fnames):
+                    kwargs = {k: self.config.get(k) for k in ['w', 'h']}
+                    if not self.deterministic:
+                        kwargs.update({k: self.config.get(k)
+                                       for k in ['aug_params', 'sigma']})
+                    kwargs['transform'] = getattr(self, 'tf', None)
+                    kwargs['color_vec'] = getattr(self, 'color_vec', None)
+                    args.append((i, shared_array_name, fname, kwargs))
+
+                self.pool.map(load_shared, args)
+                Xb = np.array(shared_array, dtype=np.float32)
+
+            finally:
+                SharedArray.delete(shared_array_name)
+
+            if labels is not None:
+                labels = labels[:, np.newaxis]
+
+            return Xb, labels
+
+else:  # if multi_reading == False
+    class SharedIterator(QueueIterator):
+        """overwrite the transform function to read image
+
+        Single-process implementation of SharedIterator
+        """
+
+        def __init__(self, config, deterministic=False, *args, **kwargs):
+            self.config = config
+            self.deterministic = deterministic
+            super(SharedIterator, self).__init__(*args, **kwargs)
+
+        def transform(self, Xb, yb):
+
+            fnames, labels = super(SharedIterator, self).transform(Xb, yb)
+
+            array = []
+            for i, fname in enumerate(fnames):
+                kwargs = {k: self.config.get(k) for k in ['w', 'h']}
+                if not self.deterministic:
+                    kwargs.update({k: self.config.get(k)
+                                   for k in ['aug_params', 'sigma']})
+                kwargs['transform'] = getattr(self, 'tf', None)
+                kwargs['color_vec'] = getattr(self, 'color_vec', None)
+                array.append(data.load_augment(fname, **kwargs))
+
+            Xb = np.stack(array).astype('float32')
+
+            if labels is not None:
+                labels = labels[:, np.newaxis]
+
+            return Xb, labels
 
 
 class ResampleIterator(SharedIterator):

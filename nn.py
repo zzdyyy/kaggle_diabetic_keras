@@ -43,8 +43,8 @@ def train_model(model: keras.Sequential, config, initial_epoch, files, labels):
     batch_iterator_train = iterator.ResampleIterator(config, batch_size=batch_size_train, initial_epoch=initial_epoch)
     batch_iterator_valid = iterator.SharedIterator(config, batch_size=batch_size_valid, deterministic=True)
     # add a adapter generator who can yield data infinitely
-    train_iter = generator_adapter(X_train, y_train, batch_iterator_train, train_steps)
-    valid_iter = generator_adapter(X_valid, y_valid, batch_iterator_valid, valid_steps)
+    train_iter = generator_adapter(X_train, y_train, batch_iterator_train)
+    valid_iter = generator_adapter(X_valid, y_valid, batch_iterator_valid)
 
     # set up callbacks for saving weight and scheduling learning-rate
     callbacks = [
@@ -78,7 +78,6 @@ def train_model(model: keras.Sequential, config, initial_epoch, files, labels):
         callbacks=callbacks,
         validation_data=valid_iter,
         validation_steps=valid_steps,
-        max_queue_size=1, workers=0,  # TODO: for debug
     )
 
 
@@ -92,15 +91,11 @@ def train_test_split(X, y, eval_size):
 
     return X_train, X_valid, y_train, y_valid
 
-from random import randint  #TODO: for debug
-import numpy as np
-def generator_adapter(X, y, iterobj, step_per_epoch):
-    id=randint(100000,900000)
+
+def generator_adapter(X, y, iterobj):
     while True:
-        print("\n", id, "is generating data for new epoch...\n")
         for Xs, ys in iterobj(X, y):
             Xs = Xs.transpose([0,3,2,1])
-            print('\n', id, ":", Xs.shape, ys.shape, np.histogram(ys, 5, [0,5])[0].__str__(), '\n')
             yield(Xs, ys)
 
 

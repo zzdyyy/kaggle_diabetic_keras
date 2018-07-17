@@ -11,9 +11,9 @@ cnf = {
     'train_dir': 'data/train_tiny',
     'test_dir': 'data/test_tiny',
     'batch_size_train': 128,
-    'batch_size_test': 64, #128, TODO:debug
+    'batch_size_test': 128,
     'balance_weights': np.array(BALANCE_WEIGHTS),
-    'balance_ratio': 0.5, #0.975, TODO
+    'balance_ratio': 0.975,
     'final_balance_weights':  np.array([1, 2, 2, 2, 2], dtype=float),
     'aug_params': {
         'zoom_range': (1 / 1.15, 1.15),

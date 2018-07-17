@@ -65,3 +65,38 @@ class RMSPoolLayer(keras.layers.pooling._Pooling2D):
         output = K.pool2d(K.square(inputs), pool_size, strides,
                           padding, data_format, pool_mode='avg')
         return K.sqrt(output + K.epsilon())
+
+
+class Padding2D(keras.engine.Layer):
+    """layer wrapper for K.spatial_2d_padding"""
+
+    def __init__(self, padding=((1,1), (1,1)), data_format="channels_last", **kwargs):
+        super(Padding2D, self).__init__(**kwargs)
+        if isinstance(padding, int):
+            padding = ((padding, padding), (padding, padding))
+        self.padding = padding
+        self.data_format = data_format
+
+    def call(self, x, **kwargs):
+        output = K.spatial_2d_padding(x, padding=self.padding, data_format=self.data_format)
+        return output
+
+    def compute_output_shape(self, input_shape):
+        if self.data_format == 'channels_first':
+            rows = input_shape[2]
+            cols = input_shape[3]
+        elif self.data_format == 'channels_last':
+            rows = input_shape[1]
+            cols = input_shape[2]
+        rows += sum(self.padding[0])
+        cols += sum(self.padding[1])
+        if self.data_format == 'channels_first':
+            return (input_shape[0], input_shape[1], rows, cols)
+        elif self.data_format == 'channels_last':
+            return (input_shape[0], rows, cols, input_shape[3])
+
+    def get_config(self):
+        config = {'padding': self.padding,
+                  'data_format': self.data_format}
+        base_config = super(Padding2D, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))

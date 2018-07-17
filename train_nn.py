@@ -1,4 +1,5 @@
 """Conv Nets training script."""
+
 import click
 import numpy as np
 
