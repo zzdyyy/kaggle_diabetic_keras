@@ -79,11 +79,11 @@ if multi_reading:
     class SharedIterator(QueueIterator):
         """override the transform function to read image
 
-        This class use SharedArray to do multi-process image image read and augment. The global_pool seems work better
-        when initialized early (but after the load_shared function).
+        This class use SharedArray to do multi-processing image image read and augment. The global_pool seems work
+        better when initialized early (but after the load_shared function).
 
-        Sometimes the multi-process may be conflict with tensorflow/keras and cause bus error. If this happens, try to
-        set multi_reading = False
+        Sometimes the multi-processing may be conflict with tensorflow/keras and cause bus error. If this happens, try
+        to set multi_reading = False
 
         If the running process exits by exception (e.g. Ctrl+C), there will be some trash leaved in /dev/shm, which can
         be deleted manually, or automatically when the system reboots.

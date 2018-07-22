@@ -59,7 +59,7 @@ def train_model(model: keras.Sequential, config, initial_epoch, files, labels):
                         ),  # save best loss
         ModelCheckpoint(verbose=1,
                         filepath=config.weights_file,
-                        monitor='kappa',
+                        monitor='val_kappa',
                         period=1,
                         save_best_only=True,
                         mode='max',

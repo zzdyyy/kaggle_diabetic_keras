@@ -274,7 +274,7 @@ def get_weights(y, weights=BALANCE_WEIGHTS):
     return p / np.sum(p) * len(p)
 
 
-def split_indices(files, labels, test_size=0.1, random_state=RANDOM_STATE):
+def split_indices_per_patient(files, labels, test_size=0.1, random_state=RANDOM_STATE):
     names = get_names(files)
     labels = get_labels(names, per_patient=True)  # Stratify data on a per_patient basis
     spl = model_selection.StratifiedShuffleSplit(n_splits=1,
@@ -284,6 +284,17 @@ def split_indices(files, labels, test_size=0.1, random_state=RANDOM_STATE):
     tr, te = next(iter(spl.split(placeholder, labels[:, 0])))
     tr = np.hstack([tr * 2, tr * 2 + 1])  # assume the two eyes of a patient is put together
     te = np.hstack([te * 2, te * 2 + 1])
+    return tr, te
+
+
+def split_indices(files, labels, test_size=0.1, random_state=RANDOM_STATE):
+    names = get_names(files)
+    labels = get_labels(names, per_patient=False)  # Stratify data on a per_patient basis
+    spl = model_selection.StratifiedShuffleSplit(n_splits=1,
+                                                  test_size=test_size,
+                                                  random_state=random_state)
+    placeholder = np.zeros(labels.shape)
+    tr, te = next(iter(spl.split(placeholder, labels)))
     return tr, te
     
 
