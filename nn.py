@@ -13,7 +13,7 @@ import util
 import iterator
 
 
-def create_net(config, initial_epoch):
+def create_net(config, initial_epoch=0):
     model = keras.Sequential(name=config.get('name'))
     for layer, kwargs in config.layers:
         model.add(layer(**kwargs))
@@ -99,6 +99,13 @@ def generator_adapter(X, y, iterobj):
             yield(Xs, ys)
 
 
+def generator_adapter_test(X, y, iterobj):
+    while True:
+        for Xs, ys in iterobj(X, y):
+            Xs = Xs.transpose([0,3,2,1])
+            yield Xs
+
+
 def get_max_epoch(scheme):
     # e.g. scheme = {0:0.003, 150:0.0003, 201:'stop'}
     for key, val in scheme.items():
@@ -127,3 +134,15 @@ def get_init_lr(scheme, epoch):
         if epoch >= e:
             lr = l
     return lr
+
+
+def test_model(model: keras.Sequential, config, files, labels):
+    eval_size = 0.1
+    _, X_test, _, y_test = train_test_split(files, labels, eval_size)  # still not image
+    batch_size_test = config.get('batch_size_test')
+    test_steps = (X_test.shape[0] + batch_size_test - 1) // batch_size_test
+    batch_iterator_test = iterator.SharedIterator(config, batch_size=batch_size_test, deterministic=True)
+    test_iter = generator_adapter_test(X_test, y_test, batch_iterator_test)
+
+    y_pred = model.predict_generator(test_iter, test_steps)
+    print('kappa:', util.kappa(y_test, y_pred))
