@@ -4,6 +4,11 @@ import keras
 from keras.callbacks import LearningRateScheduler, ModelCheckpoint
 from keras.optimizers import SGD
 
+from progressbar import ProgressBar
+import numpy as np
+import scipy.io as sio
+from pprint import pprint
+
 # Tensorflow here is used only in keras metric function 'kappa'. If you use other
 # keras backend, you can rewrite the kappa in this module.
 import tensorflow as tf
@@ -137,12 +142,12 @@ def get_init_lr(scheme, epoch):
 
 
 def test_model(model: keras.Sequential, config, files, labels):
-    eval_size = 0.1
-    _, X_test, _, y_test = train_test_split(files, labels, eval_size)  # still not image
+    X_test, y_test = files, labels  # still not image
     batch_size_test = config.get('batch_size_test')
     test_steps = (X_test.shape[0] + batch_size_test - 1) // batch_size_test
     batch_iterator_test = iterator.SharedIterator(config, batch_size=batch_size_test, deterministic=True)
     test_iter = generator_adapter_test(X_test, y_test, batch_iterator_test)
 
-    y_pred = model.predict_generator(test_iter, test_steps)
-    print('kappa:', util.kappa(y_test, y_pred))
+    y_pred = model.predict_generator(test_iter, test_steps, verbose=1)
+    # pprint(list(zip(files, y_pred)))
+    print(y_pred)
