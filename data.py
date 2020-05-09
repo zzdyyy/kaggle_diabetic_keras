@@ -214,7 +214,7 @@ def get_labels(names, labels=None, label_file='data/trainLabels.csv',
     
     if labels is None:
         labels = pd.read_csv(label_file, 
-                             index_col=0).loc[names].values.flatten()
+                             index_col=0)['level'].loc[names].values.flatten()
 
     if per_patient:
         left = np.array(['left' in n for n in names])

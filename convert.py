@@ -90,7 +90,7 @@ def save(img, fname):
               help="Convert images one by one and examine them on screen.")
 @click.option('--crop_size', default=256, show_default=True,
               help="Size of converted images.")
-@click.option('--extension', default='tiff', show_default=True,
+@click.option('--extension', default='jpg', show_default=True,
               help="Filetype of converted images.")
 def main(directory, convert_directory, test, crop_size, extension):
 
@@ -100,7 +100,7 @@ def main(directory, convert_directory, test, crop_size, extension):
         pass
 
     filenames = [os.path.join(dp, f) for dp, dn, fn in os.walk(directory)
-                 for f in fn if f.endswith('jpeg') or f.endswith('tiff')] 
+                 for f in fn if f.endswith('jpeg') or f.endswith('jpg') or f.endswith('png') or f.endswith('tiff')]
     filenames = sorted(filenames)
 
     if test:

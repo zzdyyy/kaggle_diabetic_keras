@@ -12,9 +12,10 @@ def float32(k):
     return np.cast['float32'](k)
 
 
-def kappa(y_true, y_pred):
+def kappa(y_true, y_pred):  # accept one-hot or flatten input
     y_true = np.array(y_true)
     y_pred = np.array(y_pred)
+    # if not been flatten, transform one-hot into flatten
     if len(y_true.shape) > 1 and y_true.shape[1] > 1:
         y_true = y_true.dot(list(range(y_true.shape[1])))
     if len(y_pred.shape) > 1 and y_pred.shape[1] > 1:

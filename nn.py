@@ -3,8 +3,8 @@
 import keras
 from keras.callbacks import LearningRateScheduler, ModelCheckpoint
 from keras.optimizers import SGD
+from sklearn.metrics import accuracy_score, classification_report
 
-from progressbar import ProgressBar
 import numpy as np
 import scipy.io as sio
 from pprint import pprint
@@ -150,4 +150,22 @@ def test_model(model: keras.Sequential, config, files, labels):
 
     y_pred = model.predict_generator(test_iter, test_steps, verbose=1)
     # pprint(list(zip(files, y_pred)))
-    print(y_pred)
+    for filename, score in zip(files, y_pred):
+        print(filename, score, sep='\t')
+
+
+def eval_model(model: keras.Sequential, config, files, labels):
+    X_test, y_test = files, labels  # still not image
+    batch_size_test = config.get('batch_size_test')
+    test_steps = (X_test.shape[0] + batch_size_test - 1) // batch_size_test
+    batch_iterator_test = iterator.SharedIterator(config, batch_size=batch_size_test, deterministic=True)
+    test_iter = generator_adapter_test(X_test, y_test, batch_iterator_test)
+
+    y_test = keras.utils.to_categorical(y_test, 5)
+    y_pred = model.predict_generator(test_iter, test_steps, verbose=1)
+    # pprint(list(zip(files, y_pred)))
+    print('kappa: ', util.kappa(y_test, y_pred))
+    y_gt_cat = np.argmax(y_test, -1)
+    y_pred_cat = np.round(np.clip(y_pred, 0., 4.)).astype(int)# np.argmax(y_pred, -1)
+    print('accuracy:', accuracy_score(y_gt_cat, y_pred_cat))
+    print(classification_report(y_gt_cat, y_pred_cat))

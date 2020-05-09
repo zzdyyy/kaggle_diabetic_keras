@@ -1,11 +1,11 @@
-"""Conv Nets training script."""
+"""Conv Nets evaluating script."""
 
 import click
 import numpy as np
 
 import data
 import util
-from nn import create_net, test_model
+from nn import create_net, test_model, eval_model
 
 
 @click.command()
@@ -23,9 +23,9 @@ def main(cnf, weights_from):
         weights_from = str(weights_from)
 
     # load every data found in train_dir
-    files = data.get_image_files(config.get('train_dir'))
+    files = data.get_image_files(config.get('test_dir'))
     names = data.get_names(files)
-    labels = data.get_labels(names).astype(np.float32)
+    labels = data.get_labels(names, label_file='data/retinopathy_solution.csv')
 
     model = create_net(config)
     model.summary()
@@ -38,7 +38,7 @@ def main(cnf, weights_from):
         exit()
 
     print("Testing ...")
-    test_model(model, config, files, labels)
+    eval_model(model, config, files, labels)
 
 
 if __name__ == '__main__':

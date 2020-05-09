@@ -65,6 +65,8 @@ class QueueIterator(BatchIterator):
             item = myqueue.get()
 
 
+# Set "multi_readint = True" to enable multi-processing reading and augmentation, which requires python package
+# "SharedArray==0.2" and enough shared memory.
 multi_reading = False
 if multi_reading:
     import SharedArray  # see SharedIterator below

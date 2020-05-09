@@ -1,4 +1,4 @@
-"""Conv Nets training script."""
+"""Conv Nets testing script."""
 
 import click
 import numpy as np
@@ -11,9 +11,9 @@ from nn import create_net, test_model
 @click.command()
 @click.option('--cnf', default='configs/c_512_4x4_32.py', show_default=True,
               help='Path or name of configuration module.')
-@click.option('--weights_from', default='/home/nyh/filasgan/data/detector.h5', show_default=True,
+@click.option('--weights_from', default='weights/detector.h5', show_default=True,
               help='Path to initial weights file.')
-@click.option('--input_dir', default='/home/nyh/filasgan/advatk/kaggle/', show_default=True,
+@click.option('--input_dir', default='', show_default=True,
               help='Path to input image dir.')
 def main(cnf, weights_from, input_dir):
 
