@@ -1,0 +1,10 @@
+Keras==2.2.4
+tensorflow<1.15.2
+click
+matplotlib
+numpy
+pandas
+Pillow
+scikit-image==0.15.0
+scikit-learn
+scipy
